@@ -14,7 +14,7 @@ In this project, I explored Airplane Crashes from 1908 till 2019. For this analy
 
 **Sample data visualization:** 
 
-<img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/FatalitiesPerYear.png" width="70%" height="70%">
+<img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/FatalitiesPerYear_Decade.png" width="70%" height="70%">
 
 
 ## Project 02
