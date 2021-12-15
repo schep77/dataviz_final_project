@@ -1,0 +1,253 @@
+---
+title: "Mini-Project 01"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+
+```{r, Warning = FALSE}
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+library(plotly)
+```
+
+<br>
+
+---
+
+<br>
+
+
+# Introduction
+
+Aviation saftey is a topic that hits close to home, as I recently lost a co-worker in an airplane crash. For this project, my goal is to explore airplane crashes worldwide to find out how often they are occurring, what manufacturer has the most, and how many fatalities are there as a result. For my project, I am using the `Airplane Crash Data Since 1908` dataset, which is a collection of the number of crashes from 1908 till 2019.
+
+## The Dataset
+
+```{r}
+#My data 
+crashes <- read.csv("../data/airplanedata.csv")
+head(crashes)
+```
+
+<br>
+
+---
+
+<br>
+
+
+# Data Wrangling and Exploration
+
+```{r}
+#Separating the Date column into 3 different ones to perform a better analysis
+df <- separate(data = crashes,col = Date, into = c("Month", "Day", "Year"), sep = "\\/")
+#Selecting the columns that I need to perform my analysis
+date_df <- select(df, c(Month, Year, Fatalities, Aboard, AC.Type))
+```
+
+```{r}
+#Changing the data type of fatalities to a numeric
+date_df$Fatalities <- as.numeric(date_df$Fatalities)
+#Changing all the NAs to 0s
+date_df[is.na(date_df)] <- 0
+#Changing the data type of year to a numeric
+date_df$Year <- as.numeric(date_df$Year)
+```
+
+```{r}
+#Creating a new column in our dataset called decade
+date_df <- date_df %>% 
+  mutate(Decade = floor(Year/10) * 10)
+```
+
+```{r}
+#Summing all the fatalities per Year
+year_df <- date_df %>% 
+  group_by(Year) %>% 
+  summarise(Fatalities = sum(Fatalities))
+```
+
+```{r}
+#Summing all the fatalities per Decade
+decade_df <- date_df %>% 
+  group_by(Decade) %>% 
+  summarise(Fatalities = sum(Fatalities))
+```
+
+```{r, warning=FALSE}
+#Creating a new dataset, that has no NAs
+df_country <- crashes
+df_country[is.na(df_country)] <- ""
+
+#grouping them by Location, and tallying them up, and selecting the locations that had more than 10 crashes
+df_country1 <- df_country %>% 
+  group_by(Location) %>% 
+  tally() %>% 
+  filter(n >= 10)
+
+#splitting the location couling into city, region, and country
+df_country1$Loc <- df_country1$Location
+df_country1 <- separate(data = df_country1, col = Location, into = c("City", "Region", "Country"), sep = "\\,")
+df_country1[is.na(df_country1)] <- ""
+```
+
+
+```{r}
+#Sub-dataset 
+small_DF <- select(crashes, c(AC.Type, Aboard))
+#Changing Aboard to a numeric
+small_DF$Aboard <- as.numeric(small_DF$Aboard)
+small_DF <- small_DF %>%
+  #Getting the first word of the manufacturer to use for later analysis
+  separate(col = AC.Type, into = c("Manufacturer"), sep = "\\ ") %>% 
+  #grouping by the manufacturer
+  group_by(Manufacturer) %>% 
+  #adding up the total aboard per manufacturer
+  summarise(x = Aboard) %>% 
+  arrange(desc(x)) %>% 
+  #filtering out flights that had less than 250 because I felt that would skew the results
+  filter(x > 250)
+
+small_DF <- small_DF %>%
+  group_by(Manufacturer) %>% 
+  summarise(x = sum(x)) %>% 
+  arrange(desc(x)) %>% 
+  filter(x > 250)
+
+small_DF
+```
+
+```{r}
+#Changing the data type of Aboard to a numeriv
+date_df$Aboard <- as.numeric(date_df$Aboard)
+df_fatalityRate <- date_df %>%
+  separate(col = AC.Type, into = c("Manufacturer"), sep = "\\ ") %>% 
+  #filtering for manufacturers that are in the dataset I created in the last chunk
+  filter(Manufacturer %in% small_DF$Manufacturer) %>%
+  group_by(Manufacturer, Year) %>% 
+  #summing the totals across all flights per manufacturer 
+  #I did it this way as I believe that this is more accurate then taking the average.
+  summarise(total_Fatalities = sum(Fatalities), total_Aboard = sum(Aboard)) %>% 
+  #calculating the fatality rate
+  mutate(Fatality_Rate = (total_Fatalities/total_Aboard) * 100)
+
+df_fatalityRate
+```
+<br>
+
+---
+
+<br>
+
+# Data Analysis
+
+## Has the number of airplane creashes increased or decreased over the years/decades?
+
+```{r}
+#creating the plot
+ggplot() +
+  
+  #adding the line that represents fatalities per year
+  geom_line(year_df, mapping = aes(x = Year, y = Fatalities), color = "Blue")+
+  
+  #adding the line that represents fatalities per decade
+  geom_line(decade_df, mapping = aes(x = Decade, y = Fatalities/10), color = "Red")+
+  
+  #adding title, subtitle, and caption
+  labs(title = "Fatalities by Year and Decade",
+       subtitle = "Worldwide Airplane Fatalities from 1908 till 2019",
+       caption = "Data Source: Kaggle.com") +
+  geom_smooth()+
+  
+  #making the dual axis, and adding commas to the y-axis scales
+  scale_y_continuous(
+    name = "Annual Fatalities",
+    labels = scales::comma,
+    sec.axis = sec_axis(~.*10, name = "Decade Fatalities", labels = scales::comma))+
+  
+  theme_minimal() +
+  
+  #making the coloring of the y-axis match the color of their respective lines
+  theme(axis.text.y.left = element_text(color = "blue")) +
+  theme(axis.text.y.right = element_text(color = "red")) +
+  
+  #positioning the title left aligned, not aligned with the plot
+  theme(plot.title.position = "plot")
+
+#For this graph, I tried adding the colors to the title of the graph to match the lines, but i could not figure it out.
+
+```
+> In this graph, you can see that based on the years, fatalities peaked just before 1975. It then had a slight decrease. Based off of the decades, it is showing the peak fatalities around the same time, but it shows that overall the Fatalities were steadly decreasing.
+
+<br>
+
+---
+
+<br>
+
+## What Regions have the most amount of crashes?
+
+```{r fig.width=8, fig.height=3, warning=FALSE}
+df_country1 %>% 
+  ggplot(aes(x = reorder(Loc, n), y = n, fill = Region)) +
+    geom_col() +
+    scale_fill_brewer(palette = "Blues")+
+    coord_flip() +
+    labs(title = "Regions with the Most Crashes",
+         y = "Number of Crashes", 
+         x = "") +
+    geom_text(aes(label = n), hjust = -0.5)+
+  theme_minimal() +
+  guides(fill = FALSE) +
+  theme(plot.title.position = "plot")
+```
+> This graph was shows the regions with the most common plane crashes. I think it is intresting that Russia has a decent size gap over New York. I say decent because as I was looking at this graph I noticed that there was a location called "near Moscow", so adding that to the other bar of Russia, it has a total of 28 plane crashes.
+
+<br>
+
+---
+
+<br>
+
+## What is the Fatality Rate per Year by Manufacturer?
+
+
+```{r, warning=FALSE}
+#The commented out lines didn't work. I believe it has to do with me using plotly. But if I wasnt, I would have left aligned my title, and added a caption.
+f <- df_fatalityRate %>% 
+  ggplot(data = df_fatalityRate, mapping = aes(x = Manufacturer, y = Year, fill = Fatality_Rate))+
+  labs(title = "Fatality Rate by Manufacturer") +
+       #caption = "Data Source: kaggle.com") +
+  geom_tile() +
+  guides(fill = FALSE)
+  #theme(plot.title.position = "plot")
+ggplotly(f)
+```
+
+> This graph is showing the top manufacturers, and the fatality rates per year. The darker the color, the lower the fatality rate. I mention this because I want to compare Boeing and Lockheed Martin. They are two major companies and as you can see Lockheeds fatality rate is higher. (I guess that is a good thing, as boeing supplies the commericial aircraft.)
+
+<br>
+
+---
+
+<br>
+
+# Future Works
+
+I really enjoyed exploring this dataset, and I wish I had more time. Some ideas that I wish to add:
+
+1. exploring how the `operator` of the flight could have effected the outcome of the flight. I noticed there was a lot of military operators, both foreign and domestic. 
+2. use data mining to explore the `summary` of the crash to see how many were truly accidents vs. planned attacks.
+
+<br>
+
+---
+
+<br>
