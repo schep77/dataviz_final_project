@@ -1,0 +1,298 @@
+---
+title: "Mini-Project 02"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+
+```{r, echo = FALSE, results='hide'}
+library(dplyr)
+library(tidytext)
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(igraph)
+library(ggraph)
+library(scales)
+library(plotly)
+library(sf)
+library(mapview)
+library(maps)
+library(ggmap)
+library(sf)
+```
+
+
+# Introduction
+
+For this project, I am continuing with my `Airplane Crash Data Since 1908` dataset. I am really excited to begin this project as I know I will be able to accomplish the analysis that I did not get to explore last time. That being said, I plan to explore the `Operator` data to see the operators with the most crashes, the `Summary` data to see what were the top crash explanations, and the `Long` and `Lat` data to see exactly where these crashes occurred.
+
+
+## The Dataset
+```{r}
+crashes <- read.csv("../data/airplanesData.csv")
+head(crashes)
+```
+---
+
+# Data Wrangling and Exploration
+```{r}
+summary(crashes)
+```
+```{r}
+crashes <- separate(data = crashes,col = Date, into = c("Month", "Day", "Year"), sep = "\\/")
+```
+
+```{r}
+crashes <- separate(data = crashes, col = Location, into = c("City", "Region", "Country"), sep = "\\, ")
+```
+
+---
+
+## Operator Data Analysis
+The below code was used for the `Crashes Per Operator Per State` graph.
+
+```{r}
+small_DF <- crashes %>% 
+  group_by(Operator) %>% 
+  count(Operator) %>% 
+  arrange(desc(n)) %>% 
+  filter(n > 50)
+```
+```{r}
+operatorData <- crashes %>%
+  group_by(Operator, Year) %>% 
+  count(Operator) %>% 
+  arrange(desc(n)) %>% 
+  filter(n > 0)
+
+operatorData
+```
+```{r}
+df <- operatorData %>%
+  filter(Operator %in% small_DF$Operator) %>%
+  group_by(Year)
+
+df
+```
+
+
+## Crash Count Per State Data Analysis
+The below code was used for the `Crash Count Per State` graph.
+```{r}
+my_sf <- st_as_sf(filter(crashes, Long<0, Lat>0), coords = c('Long', 'Lat'))
+```
+```{r}
+state_map_data <- map('state', fill = TRUE, plot = FALSE) %>% st_as_sf()
+```
+```{r}
+my_sf<-st_set_crs(my_sf, st_crs(state_map_data))
+```
+```{r}
+sf::sf_use_s2(FALSE)
+```
+```{r}
+state_map_data$crash_count <- lengths(st_intersects(state_map_data,my_sf))
+```
+
+
+## Crashes Location Data Analysis
+The below code was used for the `Crash Location` graph.
+```{r}
+df_geom <- crashes %>%
+  group_by(Year) %>% 
+  filter(Region %in% c("Alabama", "Arizona", "Arkansas", "California", "Colardo", "Connecticut", "Delaware", "Florida", "Georgia", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucy", "Lousiana", "Maine", "Maryland", "Massachettusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")) %>%
+ select(Year, Region, Long, Lat)
+  
+```
+```{r}
+my_sf2 <- st_as_sf(filter(df_geom, Long<0, Lat>24), coords = c('Long', 'Lat'))
+```
+```{r}
+state_map_data2 <- map('state', fill = TRUE, plot = FALSE) %>% st_as_sf()
+```
+```{r}
+my_sf2 <- st_set_crs(my_sf2, st_crs(state_map_data))
+```
+```{r}
+sf::sf_use_s2(FALSE)
+```
+```{r}
+state_map_data$crash_count <- lengths(st_intersects(state_map_data,my_sf2))
+```
+
+
+
+## Bigram Data Analysis
+The below code was used for the `Crash Summary Bigram` graph.
+```{r}
+bigramData <- crashes %>% 
+  select(Summary)
+
+bigramData
+```
+```{r}
+sum_bigram <- bigramData %>% 
+  unnest_tokens(bigram, Summary,
+                token = "ngrams", n = 2)
+```
+```{r}
+sum_bigram %>% 
+  count(bigram, sort = TRUE)
+```
+```{r}
+bigrams_filtered <- sum_bigram %>% 
+  separate(bigram, into = c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+```
+```{r}
+bigram_count <- bigrams_filtered %>% 
+  count(word1, word2, sort = TRUE)
+bigram_count
+```
+```{r}
+bigram_unite <- bigrams_filtered %>% 
+  unite(bigram, word1, word2, sep = " ")
+bigram_unite
+```
+```{r}
+bigram_graph <- bigram_count %>% 
+  filter(n > 60) %>% 
+  graph_from_data_frame()
+```
+
+
+
+
+
+
+---
+
+# Data Visualizations
+
+
+## Crashes per Operator over Time
+```{r, fig.width=8, fig.height=6}
+f <- ggplot(data = df, aes(x = Year, y = n, color = Operator, group = 1)) +
+  geom_point(palette = "Blues")+
+  geom_line(palette = "Blues")+
+  labs(title = "Crashes Per Operator Per Year",
+       y = " ",
+       x = "Year")+
+  theme_minimal()+
+  #scale_x_continuous(expand = )+
+  theme(plot.title.position = "plot")
+
+ggplotly(f)
+```
+
+> This graph shows the top 4 operators that had the most crashes. You can hover over the point to see which year it occured in, the number of crashs, and the operator. One of the things i found intresting from this graph is that Deutsche Lufthansa made it into the top 4 for most crashes, but was only had crashes from 1908-1945. Something that may be worth looking at is a crash ratio or flights flown to flights crashed.
+
+## Crash Count by State
+```{r fig.width=8, fig.height=6}
+k <- ggplot() +
+  geom_sf(data = state_map_data, aes(fill = crash_count))+
+  scale_fill_distiller(palette="Reds", direction = +1)+
+  labs(title = "Crash Count Per State")+
+  guides(fill = FALSE)+
+  theme_minimal()+
+  theme(plot.title.position = "plot")
+
+ggplotly(k)
+```
+> In this graph, we can see the number of crashes that occured in each state. 
+
+## Crash Location
+```{r}
+p <- ggplot() +
+  geom_sf(data = state_map_data)+
+  geom_sf(data = my_sf2, color = 'red', size = 0.1)+
+  theme_minimal()+
+  labs(title = "Crash Location per State")+
+  theme(plot.title.position = "plot")
+
+ggplotly(p)
+```
+> Building on the last graph, this one shows the location of each crash in the state. 
+
+## Crash Summary Bigram
+```{r fig.width=10, fig.height=10}
+set.seed(2021)
+a <- grid::arrow(
+  type = "closed",
+  length = unit(.12, "inches")
+)
+
+ggraph(bigram_graph, layout = "kk") +
+  geom_edge_link(
+    aes(edge_alpha = n),
+    show.legend = FALSE, arrow = a,
+    edge_width = 1) +
+  geom_node_point(color = "black",
+                  size = 4) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)+
+  labs(title = "Crash Summary Bigram")+
+  theme_minimal()+
+  theme(plot.title.position = "plot")
+```
+> In this model, we can see the most common word parings from the crash summary. I thought this would be intresting to explore as it could give some insight into what caused the crash.
+
+
+---
+
+# Conclusion
+
+This analysis helped me see a different side of this data. It showed me the where and why that I missed in my first project. It was interesting to explore the different states counts, and the the individual location of each crash. It was even a little surprising to find out that California had the most crashes out of the continental US. As for the crash explanations, so were to be expected, like engine -> failure or weather -> conditions, but I thought it was interesting to see some like caught -> fire and struck -> tree.
+
+# Future Works
+
+I am really disappointed that I was not able to get 'gganimate' to work, and I hope to implement that in my future analysis. Additionally, I had a 'leaflet' plot that was really messy, so I hope to refine that and add that to a future version of this project.
+
+
+```{r}
+date_df <- select(crashes, c(Month, Year, Fatalities, Aboard, AC.Type, Long, Lat))
+```
+
+```{r}
+#Changing the data type of fatalities to a numeric
+date_df$Fatalities <- as.numeric(date_df$Fatalities)
+#Changing all the NAs to 0s
+date_df[is.na(date_df)] <- 0
+#Changing the data type of year to a numeric
+date_df$Year <- as.numeric(date_df$Year)
+```
+
+```{r}
+#Creating a new column in our dataset called decade
+date_df <- date_df %>% 
+  mutate(Decade = floor(Year/10) * 10)
+```
+
+
+```{r}
+international_sf <- st_as_sf(date_df, coords = c('Long', 'Lat'))
+```
+
+```{r}
+#international_sf <- st_set_crs(international_sf, st_crs(state_map_data3))
+```
+
+```{r}
+#state_map_data3 <- maps::map('state', fill = TRUE, plot = FALSE) %>% 
+  #st_as_sf()
+```
+
+
+
+
+
+```{r}
+library(leaflet)
+leaflet() %>% 
+  addTiles() %>% 
+  addCircleMarkers(data = international_sf, fillColor = international_sf$Year, fillOpacity = 1, stroke = FALSE, radius = 5, group = international_sf$Year) %>% 
+  addLayersControl(overlayGroups = international_sf$Year, options = layersControlOptions(collapsed = FALSE))
+```
