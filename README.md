@@ -14,8 +14,6 @@ In this project, I explored Airplane Crashes from 1908 till 2019. For this analy
 
 **Sample data visualization:** 
 
-
-_[include your favorite visualization from this project here]_
 <img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/FatalitiesPerYear.png" width="70%" height="70%">
 
 
@@ -25,7 +23,6 @@ In this project, I continued to explore the Airplane Crash data from my previous
 
 **Sample data visualization:** 
 
-_[include your favorite visualization from this project here]_
 <img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/CrashSummaryBigram.png" width="60%" height="60%">
 
 
@@ -36,7 +33,6 @@ The goal of this project was to reproduce visualizations that show the distribut
 
 **Sample data visualization:** 
 
-_[include your favorite visualization from this project here]_
 <img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/MaxTempDensity.png" width="80%" height="80%">
 
 
