@@ -10,37 +10,36 @@ The following is a sample of products created during the _"Data Visualization an
 
 ## Project 01
 
-In the `project_01/` folder you can find 
+In this project, I explored Airplane Crashes from 1908 till 2019. For this analysis, I looked into the fatality rate of the top five manufacturers, the regions that had the most crashs, and the sample visualization below, which shows the fatalities per year, and decade. 
+
 **Sample data visualization:** 
 
+
 _[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/figs/raw/master/echarts.png" width="70%" height="70%">
-
-
+<img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/FatalitiesPerYear.png" width="70%" height="70%">
 
 
 ## Project 02
 
-In this project, I explored ... _[short description of your revised project goes here]_ Find the code and report in the `project_02/` folder.
+In this project, I continued to explore the Airplane Crash data from my previous project. In this analysis, I explored the crashes per operator per year, the crashes count by state, and the crash location. The final part of the project was to create a model, for that I looked into the summary of the crash. I created a Bi-gram to see what were the main reasons for these crashes.
 
 **Sample data visualization:** 
 
 _[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/dataviz_final_project/blob/main/figures/fl_higher_ed.png" width="60%" height="60%">
+<img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/CrashSummaryBigram.png" width="60%" height="60%">
 
-(you can also place your figures in the `figures/` folder and use the `![](path_to_picture)` option to add the pictures here)
 
 
 ## Project 03
 
-In this project, I explored ... _[short description of your revised project goes here]_
+The goal of this project was to reproduce visualizations that show the distributions of continous variables based on a dataset containing weather information from Tampa's International Airport. In the below visualization, you can see the max temperatures per month displayed in a density ridge plot.
 
 **Sample data visualization:** 
 
 _[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/figs/raw/master/jackie_jessie_marion.png" width="80%" height="80%">
+<img src="https://github.com/schep77/dataviz_final_project/blob/main/figures/MaxTempDensity.png" width="80%" height="80%">
 
 
 ### Moving Forward
 
-_add here a short reflection on what you learned and what you plan to continue exploring in terms of data visualization, data storytelling, reproducible research, and/or related topics_
+I really enjoyed doing these projects over the course of this semester. In the future, I wish to expand upon these projects to have better, and more telling visualizations. For example, in project 2 I wished to have a leaflet interactive plot where you could select which decade you saw crashes for.
